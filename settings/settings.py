@@ -30,10 +30,10 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple'
         },
-        'doc_sender_handler': {
+        'es_import_handler': {
             'level': 'DEBUG',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOGGING_FILE_PATH, 'doc_sender.log'),
+            'filename': os.path.join(LOGGING_FILE_PATH, 'es_import.log'),
             'maxBytes': 1024 * 1024 * 5,
             'backupCount': 5,
             'formatter': 'simple',
@@ -45,8 +45,8 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
-        'doc_sender': {
-            'handlers': ['doc_sender_handler'],
+        'es_import': {
+            'handlers': ['es_import_handler'],
             'level': 'DEBUG',
             'propagate': False
         }
