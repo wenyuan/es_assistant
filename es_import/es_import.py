@@ -23,6 +23,7 @@ if not os.path.exists(JSON_PATH):
 es = Elasticsearch('192.168.10.50')
 index_name = "materials-baike"
 data_type = 'materials'
+json_file_name = 'A'
 # ------------------------
 
 
@@ -63,4 +64,4 @@ class EsImport(object):
 
 if __name__ == "__main__":
     es_import = EsImport()
-    es_import.bulk2es('A')
+    es_import.bulk2es(json_file_name)

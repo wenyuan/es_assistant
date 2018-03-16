@@ -10,9 +10,9 @@ elasticsearch 5.x </br>
 ## dependence
 ### ubuntu:
 
-* python2.7 </br>
+* **python2.7** </br>
   sudo apt-get install python-pip python-dev
-* pip package </br>
+* **pip package** </br>
   sudo pip install -r requirements.txt
 
 ## usage
@@ -23,7 +23,10 @@ elasticsearch 5.x </br>
 
         [{"name":"zhangsan", "age":13},{"name":"lisi", "age":14}]
 
-    params need to be modified: es, index_name, data_type
+    params need to be modified: <font color="#FF0000">es, index\_name, data\_type, json\_file\_name without suffix</font>
 * **es\_export:** </br>
     bulk es\_data to json\_file </br>
-    params need to be modified: es, index_name, data_type, doc_from, doc_size
+    params need to be modified: <font color="#FF0000">es, index\_name, data\_type, doc\_from, doc\_size</font>
+* **es\_template:** </br>
+    make template </br>
+    params need to be modified: <font color="#FF0000">host, index\_name, data\_type, template\_body</font>

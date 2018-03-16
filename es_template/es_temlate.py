@@ -7,12 +7,6 @@ https://www.jianshu.com/p/1f67e4436c37
 """
 import json
 import requests
-import logging.config
-from settings.settings import *
-
-
-logging.config.dictConfig(LOGGING)
-logger = logging.getLogger('develop')
 
 # ----- 需要修改的参数 -----
 host = '192.168.10.50'
