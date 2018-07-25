@@ -47,6 +47,12 @@ class EsExport(object):
                                  request_timeout=300)
             print('hits: %s' % (response['hits']['total']))
             print('used_time(ms): %s' % (response['took']))
+            if response['hits']['total'] > 0:
+                doc_hits = response['hits']['hits']
+                doc_list = []
+                for hit in doc_hits:
+                    doc_list.append(hit['_source'])
+                self.bulk2json(doc_list)
         except TransportError as e:
             if isinstance(e, ConnectionTimeout):
                 print('Read timed out!')
@@ -56,12 +62,6 @@ class EsExport(object):
                 print('System err')
         except Exception as e:
             print(e)
-        if response['hits']['total'] > 0:
-            doc_hits = response['hits']['hits']
-            doc_list = []
-            for hit in doc_hits:
-                doc_list.append(hit['_source'])
-            self.bulk2json(doc_list)
 
     @staticmethod
     def bulk2json(content):
