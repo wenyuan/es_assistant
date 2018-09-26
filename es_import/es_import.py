@@ -6,11 +6,11 @@
 开发测试用,建议1w以下的数据量
 """
 import os
-import sys
 import json
 from functools import reduce
 from elasticsearch import Elasticsearch, helpers
 from elasticsearch.exceptions import *
+import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 

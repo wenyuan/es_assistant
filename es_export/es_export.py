@@ -6,11 +6,11 @@
 开发测试用,如果数据量很大或者涉及到深度分页,请采用scroll-api
 """
 import os
-import sys
 import json
 from functools import reduce
 from elasticsearch import Elasticsearch
 from elasticsearch.exceptions import *
+import sys
 reload(sys)
 sys.setdefaultencoding('utf-8')
 
