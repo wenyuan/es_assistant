@@ -56,7 +56,6 @@ def check_disk_usage(check_count):
             continue
         else:
             disk_warning = False
-            logger.info('检查磁盘正常,当前磁盘容量{used_disk_pct}%\n'.format(used_disk_pct=used_disk_pct))
     if disk_warning:
         foremost_daily_suffix, foremost_yearly_suffix = get_foremost_suffix()
         es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
@@ -67,6 +66,8 @@ def check_disk_usage(check_count):
         check_count += 1
         time.sleep(5)
         check_disk_usage(check_count)
+    else:
+        logger.info('检查磁盘正常,当前磁盘容量{used_disk_pct}%\n'.format(used_disk_pct=used_disk_pct))
 
 
 def get_foremost_suffix():
