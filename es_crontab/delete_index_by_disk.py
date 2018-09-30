@@ -43,31 +43,37 @@ used_disk_pct_thresholds = 75
 
 
 def check_disk_usage(check_count):
-    disk_warning = False
-    res = es.cluster.allocation_explain(include_disk_info=True)
-    nodes = res['cluster_info']['nodes']
+    res = es.nodes.stats(metric=['fs'])
+    nodes = res['nodes']
     if check_count == 0:
         logger.info('检查磁盘容量')
+    used_disk_pct_list = []
     for node_id in nodes:
         node = nodes.get(node_id)
-        used_disk_pct = max(node['most_available']['used_disk_percent'], node['least_available']['used_disk_percent'])
-        if used_disk_pct > used_disk_pct_thresholds:
-            disk_warning = True
-            continue
-        else:
-            disk_warning = False
+        free_in_bytes = node['fs']['total']['free_in_bytes']
+        total_in_bytes = node['fs']['total']['total_in_bytes']
+        used_disk_pct = format(
+            float((total_in_bytes - free_in_bytes)) / float(total_in_bytes) * 100,
+            ".2f"
+        )
+        used_disk_pct_list.append(float(used_disk_pct))
+    max_used_disk_pct = max(used_disk_pct_list)
+    if max_used_disk_pct > used_disk_pct_thresholds:
+        disk_warning = True
+    else:
+        disk_warning = False
     if disk_warning:
         foremost_daily_suffix, foremost_yearly_suffix = get_foremost_suffix()
         es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
-        logger.info('当前磁盘容量{used_disk_pct}%，超过{used_disk_pct_thresholds}%,已删除{date}的数据'.format(
-            used_disk_pct=used_disk_pct,
+        logger.info('当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%，超过{used_disk_pct_thresholds}%,已删除{date}的数据'.format(
+            used_disk_pct=max_used_disk_pct,
             used_disk_pct_thresholds=used_disk_pct_thresholds,
             date=foremost_daily_suffix))
         check_count += 1
         time.sleep(5)
         check_disk_usage(check_count)
     else:
-        logger.info('检查磁盘正常,当前磁盘容量{used_disk_pct}%\n'.format(used_disk_pct=used_disk_pct))
+        logger.info('检查磁盘正常,当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%\n'.format(used_disk_pct=max_used_disk_pct))
 
 
 def get_foremost_suffix():
