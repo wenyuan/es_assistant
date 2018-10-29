@@ -39,6 +39,8 @@ logger.setLevel(logging.DEBUG)
 # ----- 需要修改的参数 -----
 es = Elasticsearch('127.0.0.1')
 used_disk_pct_thresholds = 75
+
+
 # ------------------------
 
 
@@ -64,14 +66,19 @@ def check_disk_usage(check_count):
         disk_warning = False
     if disk_warning:
         foremost_daily_suffix, foremost_yearly_suffix = get_foremost_suffix()
-        es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
-        logger.info('当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%，超过{used_disk_pct_thresholds}%,已删除{date}的数据'.format(
-            used_disk_pct=max_used_disk_pct,
-            used_disk_pct_thresholds=used_disk_pct_thresholds,
-            date=foremost_daily_suffix))
-        check_count += 1
-        time.sleep(5)
-        check_disk_usage(check_count)
+        if foremost_daily_suffix:
+            es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
+            logger.info('当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%，超过{used_disk_pct_thresholds}%,已删除{date}的数据'.format(
+                used_disk_pct=max_used_disk_pct,
+                used_disk_pct_thresholds=used_disk_pct_thresholds,
+                date=foremost_daily_suffix))
+            check_count += 1
+            time.sleep(5)
+            check_disk_usage(check_count)
+        else:
+            logger.info('不存在或只存在一条按天分库的索引,不进行删除,请手动检查服务器磁盘消耗')
+        # todo...
+        # 目前没有按年分库的业务,如果有看情况添加(独立删除or结合按天分库的索引选择性删除)
     else:
         logger.info('检查磁盘正常,当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%\n'.format(used_disk_pct=max_used_disk_pct))
 
@@ -92,8 +99,14 @@ def get_foremost_suffix():
     desc_yearly_suffix_list = sorted(
         yearly_suffix_list, reverse=True
     )
-    foremost_daily_suffix = desc_daily_suffix_list[-1]
-    foremost_yearly_suffix = desc_yearly_suffix_list[-1]
+    foremost_daily_suffix = desc_daily_suffix_list[-1] if desc_daily_suffix_list else ''
+    foremost_yearly_suffix = desc_yearly_suffix_list[-1] if desc_yearly_suffix_list else ''
+    # 如果只有一天的数据,就不删按年份库的索引
+    if len(foremost_daily_suffix) in [0, 1]:
+        foremost_daily_suffix = ''
+    # 如果只有一年的数据,就不删按年份库的索引
+    if len(yearly_suffix_list) in [0, 1]:
+        foremost_yearly_suffix = ''
     return foremost_daily_suffix, foremost_yearly_suffix
 
 
