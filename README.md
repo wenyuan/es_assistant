@@ -1,4 +1,4 @@
-# es_helper
+# ES Assistant
 ## about
 Some elasticsearch scripts for devops. </br>
 
