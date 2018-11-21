@@ -39,8 +39,6 @@ logger.setLevel(logging.DEBUG)
 # ----- 需要修改的参数 -----
 es = Elasticsearch('127.0.0.1')
 used_disk_pct_thresholds = 75
-
-
 # ------------------------
 
 
