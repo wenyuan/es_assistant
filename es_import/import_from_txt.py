@@ -57,7 +57,7 @@ def send_data2es(doc_list):
         })
     try:
         es = Elasticsearch(es_host)
-        success, failed = helpers.bulk(es, actions)
+        success, failed = helpers.bulk(client=es, actions=actions)
         print('Bulk success: %s, failed: %s' % (success, failed))
     except TransportError as e:
         if isinstance(e, ConnectionTimeout):
