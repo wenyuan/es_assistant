@@ -74,6 +74,7 @@ def check_cluster_health():
                 <div style='margin-bottom:5px'>错误提示: {reason}</div>
                 """.format(es_host=es_host, reason='Read timed out!')
                 send_email(email_title, suggestion, detail)
+                es_hosts.remove(es_host)
             elif isinstance(e, ConnectionError):
                 logger.info('Elasticsearch connection refused!\n')
                 suggestion = '检查ES是否已启动或运行异常'
@@ -82,6 +83,7 @@ def check_cluster_health():
                 <div style='margin-bottom:5px'>错误提示: {reason}</div>
                 """.format(es_host=es_host, reason='Elasticsearch connection refused!')
                 send_email(email_title, suggestion, detail)
+                es_hosts.remove(es_host)
             else:
                 logger.info('System err\n')
                 suggestion = '未知，请登录服务器排查'
@@ -90,6 +92,7 @@ def check_cluster_health():
                 <div style='margin-bottom:5px'>错误提示: {reason}</div>
                 """.format(es_host=es_host, reason='System err!')
                 send_email(email_title, suggestion, detail)
+                es_hosts.remove(es_host)
         except Exception as e:
             logger.info(e)
             logger.info('\n')
@@ -126,10 +129,8 @@ def send_email(subject, suggestion, detail):
     """.format(subject=subject, now_time=now_time, suggestion=suggestion, detail=detail)
     msg = MIMEText(mail_msg, 'html', 'utf-8')
 
-    # msg['From'] = u'Monitor汇报人 <%s>' % sender
-    # msg['To'] = u'Hibitom运维团队 <%s>' % 'receiver1@163.com,receiver2@163.com,receiver3@163.com'
     msg['From'] = Header('Monitor汇报人 <%s>' % sender, 'utf-8')
-    msg['To'] = Header('Hibitom运维团队', 'utf-8')
+    msg['To'] = Header('运维团队', 'utf-8')
     msg['Subject'] = Header(subject, 'utf-8')
 
     smtp = smtplib.SMTP()
