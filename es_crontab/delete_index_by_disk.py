@@ -37,51 +37,63 @@ logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 # ----- 需要修改的参数 -----
-es = Elasticsearch('127.0.0.1')
+es_host = '127.0.0.1'
 used_disk_pct_thresholds = 75
 # ------------------------
 
 
 def check_disk_usage(check_count):
-    res = es.nodes.stats(metric=['fs'])
-    nodes = res['nodes']
-    if check_count == 0:
-        logger.info('检查磁盘容量')
-    used_disk_pct_list = []
-    for node_id in nodes:
-        node = nodes.get(node_id)
-        free_in_bytes = node['fs']['total']['free_in_bytes']
-        total_in_bytes = node['fs']['total']['total_in_bytes']
-        used_disk_pct = format(
-            float((total_in_bytes - free_in_bytes)) / float(total_in_bytes) * 100,
-            ".2f"
-        )
-        used_disk_pct_list.append(float(used_disk_pct))
-    max_used_disk_pct = max(used_disk_pct_list)
-    if max_used_disk_pct > used_disk_pct_thresholds:
-        disk_warning = True
-    else:
-        disk_warning = False
-    if disk_warning:
-        foremost_daily_suffix, foremost_yearly_suffix = get_foremost_suffix()
-        if foremost_daily_suffix:
-            es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
-            logger.info('当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%，超过{used_disk_pct_thresholds}%,已删除{date}的数据'.format(
-                used_disk_pct=max_used_disk_pct,
-                used_disk_pct_thresholds=used_disk_pct_thresholds,
-                date=foremost_daily_suffix))
-            check_count += 1
-            time.sleep(5)
-            check_disk_usage(check_count)
+    try:
+        es = Elasticsearch(es_host)
+        res = es.nodes.stats(metric=['fs'])
+        nodes = res['nodes']
+        if check_count == 0:
+            logger.info('检查磁盘容量')
+        used_disk_pct_list = []
+        for node_id in nodes:
+            node = nodes.get(node_id)
+            free_in_bytes = node['fs']['total']['free_in_bytes']
+            total_in_bytes = node['fs']['total']['total_in_bytes']
+            used_disk_pct = format(
+                float((total_in_bytes - free_in_bytes)) / float(total_in_bytes) * 100,
+                ".2f"
+            )
+            used_disk_pct_list.append(float(used_disk_pct))
+        max_used_disk_pct = max(used_disk_pct_list)
+        if max_used_disk_pct > used_disk_pct_thresholds:
+            disk_warning = True
         else:
-            logger.info('不存在或只存在一条按天分库的索引,不进行删除,请手动检查服务器磁盘消耗')
-        # todo...
-        # 目前没有按年分库的业务,如果有看情况添加(独立删除or结合按天分库的索引选择性删除)
-    else:
-        logger.info('检查磁盘正常,当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%\n'.format(used_disk_pct=max_used_disk_pct))
+            disk_warning = False
+        if disk_warning:
+            foremost_daily_suffix, foremost_yearly_suffix = get_foremost_suffix(es)
+            if foremost_daily_suffix:
+                es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
+                logger.info('当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%，超过{used_disk_pct_thresholds}%,已删除{date}的数据'.format(
+                    used_disk_pct=max_used_disk_pct,
+                    used_disk_pct_thresholds=used_disk_pct_thresholds,
+                    date=foremost_daily_suffix))
+                check_count += 1
+                time.sleep(5)
+                check_disk_usage(check_count)
+            else:
+                logger.info('不存在或只存在一条按天分库的索引,不进行删除,请手动检查服务器磁盘消耗')
+            # todo...
+            # 目前没有按年分库的业务,如果有看情况添加(独立删除or结合按天分库的索引选择性删除)
+        else:
+            logger.info('检查磁盘正常,当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%\n'.format(used_disk_pct=max_used_disk_pct))
+    except TransportError as e:
+        if isinstance(e, ConnectionTimeout):
+            logger.info('Read timed out!\n')
+        elif isinstance(e, ConnectionError):
+            logger.info('Elasticsearch connection refused!\n')
+        else:
+            logger.info('System err\n')
+    except Exception as e:
+        logger.info(e)
+        logger.info('\n')
 
 
-def get_foremost_suffix():
+def get_foremost_suffix(es):
     res = es.indices.get_settings(index='cc-*,sc-*')
     index_name_list = filter(lambda x: '-' in x, res.keys())
     suffix_list = []

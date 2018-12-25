@@ -1,21 +1,21 @@
 # ES Assistant
-## about
+## About
 Some elasticsearch scripts for devops. </br>
 
-## environment
+## Environment
 Ubuntu 14.04 </br>
-python 2.7 </br>
-elasticsearch 5.x </br>
+Python 2.7 </br>
+Elasticsearch 5.x </br>
 
-## dependence
-### ubuntu:
+## Dependence
+### Ubuntu:
 
 * **python2.7** </br>
   sudo apt-get install python-pip python-dev
 * **pip package** </br>
   sudo pip install -r requirements.txt
 
-## tools introduction
+## Tools introduction
 * ### usage
 ```bash
 run each app： python xxx.py
@@ -31,3 +31,14 @@ run each app： python xxx.py
 
 * ### es_crontab
 	function： crontab for devops
+
+## History
+* 2018.12.25
+  * add cluster_health_check: split-brain problem alert
+* 2018.11.20
+  * clean code 
+* 2018.09.30 
+  * add delete_index_by_disk
+  * cluster dick check
+* 2018.03.15
+  * first commit
