@@ -33,6 +33,8 @@ run each app： python xxx.py
 	function： crontab for devops
 
 ## History
+* 2019.06.28
+  * add white_list in delete_index_by_disk
 * 2018.12.25
   * add cluster_health_check: split-brain problem alert
 * 2018.11.20

@@ -39,6 +39,9 @@ logger.setLevel(logging.DEBUG)
 # ----- 需要修改的参数 -----
 es_host = '127.0.0.1'
 used_disk_pct_thresholds = 75
+# 不参与老化的索引，空数组时候全部索引参与老化
+# ex: ['']
+white_list = ['cc-iprobe-1m_data']
 # ------------------------
 
 
@@ -67,7 +70,21 @@ def check_disk_usage(check_count):
         if disk_warning:
             foremost_daily_suffix, foremost_yearly_suffix = get_foremost_suffix(es)
             if foremost_daily_suffix:
-                es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
+                foremost_indices = [
+                    item['index'] for item in
+                    es.cat.indices(index='*{suffix}'.format(suffix=foremost_daily_suffix), format='json')
+                ]
+                keep_indices = set()
+                for index in foremost_indices:
+                    for white in white_list:
+                        if index.startswith(white):
+                            keep_indices.add(index)
+                            continue
+                drop_indices = set(foremost_indices) - keep_indices
+                # print(','.join(drop_indices))
+                es.indices.delete(index=','.join(drop_indices), ignore=[400, 404])
+                # 未加白名单的delete方法
+                # es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
                 logger.info('当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%，超过{used_disk_pct_thresholds}%,已删除{date}的数据'.format(
                     used_disk_pct=max_used_disk_pct,
                     used_disk_pct_thresholds=used_disk_pct_thresholds,
