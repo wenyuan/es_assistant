@@ -51,7 +51,7 @@ def check_disk_usage(check_count):
         res = es.nodes.stats(metric=['fs'])
         nodes = res['nodes']
         if check_count == 0:
-            logger.info('检查磁盘容量')
+            logger.info('开始检查磁盘容量')
         used_disk_pct_list = []
         for node_id in nodes:
             node = nodes.get(node_id)
@@ -81,23 +81,28 @@ def check_disk_usage(check_count):
                             keep_indices.add(index)
                             continue
                 drop_indices = set(foremost_indices) - keep_indices
-                # print(','.join(drop_indices))
-                es.indices.delete(index=','.join(drop_indices), ignore=[400, 404])
-                # 未加白名单的delete方法
-                # es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
-                logger.info('当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%，超过{used_disk_pct_thresholds}%,已删除{date}的数据'.format(
-                    used_disk_pct=max_used_disk_pct,
-                    used_disk_pct_thresholds=used_disk_pct_thresholds,
-                    date=foremost_daily_suffix))
-                check_count += 1
-                time.sleep(5)
-                check_disk_usage(check_count)
+                drop_indices_str = ','.join(drop_indices)
+                if not drop_indices_str:
+                    logger.info('当前所有节点中, 占据磁盘容量百分比最多的为{used_disk_pct}%, 超过{used_disk_pct_thresholds}%, 但没有白名单外的可删除数据, 请手动维护'.format(
+                        used_disk_pct=max_used_disk_pct,
+                        used_disk_pct_thresholds=used_disk_pct_thresholds))
+                else:
+                    es.indices.delete(index=drop_indices_str, ignore=[400, 404])
+                    # 未加白名单的delete方法
+                    # es.indices.delete(index='*{suffix}'.format(suffix=foremost_daily_suffix), ignore=[400, 404])
+                    logger.info('当前所有节点中, 占据磁盘容量百分比最多的为{used_disk_pct}%, 超过{used_disk_pct_thresholds}%, 已删除{date}的数据'.format(
+                        used_disk_pct=max_used_disk_pct,
+                        used_disk_pct_thresholds=used_disk_pct_thresholds,
+                        date=foremost_daily_suffix))
+                    check_count += 1
+                    time.sleep(5)
+                    check_disk_usage(check_count)
             else:
-                logger.info('不存在或只存在一条按天分库的索引,不进行删除,请手动检查服务器磁盘消耗')
+                logger.info('不存在或只存在一条按天分库的索引, 不进行删除, 请手动检查服务器磁盘消耗')
             # todo...
             # 目前没有按年分库的业务,如果有看情况添加(独立删除or结合按天分库的索引选择性删除)
         else:
-            logger.info('检查磁盘正常,当前所有节点中,占据磁盘容量百分比最多的为{used_disk_pct}%\n'.format(used_disk_pct=max_used_disk_pct))
+            logger.info('检查磁盘正常, 当前所有节点中, 占据磁盘容量百分比最多的为{used_disk_pct}%\n'.format(used_disk_pct=max_used_disk_pct))
     except TransportError as e:
         if isinstance(e, ConnectionTimeout):
             logger.info('Read timed out!\n')
@@ -112,7 +117,17 @@ def check_disk_usage(check_count):
 
 def get_foremost_suffix(es):
     res = es.indices.get_settings(index='cc-*,sc-*')
-    index_name_list = filter(lambda x: '-' in x, res.keys())
+    # 计算最早的索引时，要排除白名单里的索引，否则影响foremost_suffix的值
+    all_indices = res.keys()
+    keep_indices = set()
+    for index in all_indices:
+        for white in white_list:
+            if index.startswith(white):
+                keep_indices.add(index)
+                continue
+    indices = list(set(all_indices) - keep_indices)
+
+    index_name_list = filter(lambda x: '-' in x, indices)
     suffix_list = []
     for index_name in index_name_list:
         suffix_list.append(index_name.split('-')[-1])
